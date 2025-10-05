@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXTAUTH_SECRET=Jg5QaXU8+VGFmQqjt+KrxfT2Hs7Lp9Mn3Bv6Cx1Zy4=
+      - NEXTAUTH_URL=http://localhost:3000
+      # Supabase (optional)
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - dev_data:/app/data
+    restart: unless-stopped
+    command: npm run dev
+
+volumes:
+  dev_data:
+    driver: local
