@@ -1,10 +1,10 @@
 # GBU Veranstaltungsmanagement
 
-Ein System zur Verwaltung von Gefährdungsbeurteilungen und Unterweisungen für Veranstaltungsprojekte.
+Ein System zur Verwaltung von Gefährdungsbeurteilungen und Unterweisungen für Veranstaltungsprojekte mit MongoDB-Datenbank.
 
 ## 🐳 Docker Setup (Empfohlen)
 
-Das System kann vollständig mit Docker gestartet werden. Alle Abhängigkeiten und die Anwendung werden automatisch in Containern ausgeführt.
+Das System kann vollständig mit Docker gestartet werden. MongoDB-Datenbank und die Anwendung werden automatisch in Containern ausgeführt.
 
 ### Schnellstart
 
@@ -15,6 +15,12 @@ Das System kann vollständig mit Docker gestartet werden. Alle Abhängigkeiten u
 # Oder Entwicklungsmodus
 ./start-docker.sh dev
 ```
+
+### Was wird gestartet
+
+- **MongoDB 7.0** - Datenbank auf Port 27017
+- **Next.js App** - Webanwendung auf Port 3000
+- **Automatische Initialisierung** - Datenbank wird mit Beispieldaten gefüllt
 
 ### Detaillierte Docker-Befehle
 
@@ -72,8 +78,10 @@ npm run docker:clean      # Aufräumen
 
 - **Docker** (Version 20.10+)
 - **Docker Compose** (Version 2.0+)
+- **Docker Compose** (Version 2.0+)
 - **Mindestens 2GB RAM** für Container
 - **Port 3000** muss verfügbar sein
+- **Port 27017** muss verfügbar sein (MongoDB)
 
 ### Erste Schritte
 

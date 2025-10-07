@@ -1,16 +1,35 @@
 version: '3.8'
 
 services:
+  mongodb:
+    image: mongo:7.0
+    container_name: gbu_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: gbu_management
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongodb/init:/docker-entrypoint-initdb.d
+    networks:
+      - gbu_network
+
   app:
     build: 
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - mongodb
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - NEXTAUTH_SECRET=Jg5QaXU8+VGFmQqjt+KrxfT2Hs7Lp9Mn3Bv6Cx1Zy4=
       - NEXTAUTH_URL=http://localhost:3000
+      - MONGODB_URI=mongodb://admin:admin123@mongodb:27017/gbu_management?authSource=admin
       # Supabase (optional - falls konfiguriert)
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
@@ -19,12 +38,20 @@ services:
       # Persistente Daten für localStorage-Simulation
       - app_data:/app/data
     restart: unless-stopped
+    networks:
+      - gbu_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
+networks:
+  gbu_network:
+    driver: bridge
+
 volumes:
+  mongodb_data:
+    driver: local
   app_data:
     driver: local

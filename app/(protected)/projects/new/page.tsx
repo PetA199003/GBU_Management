@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { createProject, getRiskAssessments, getCriteriaCategories } from '@/lib/mongodb';
 
 // Import risk assessment types and functions
 interface RiskAssessment {
@@ -248,37 +249,53 @@ export default function NewProjectPage() {
 
   // Load global risk assessments on component mount
   useEffect(() => {
-    console.log('Loading data on component mount...');
-    
-    const savedGlobalAssessments = localStorage.getItem('gbu-global-risk-assessments');
-    if (savedGlobalAssessments) {
+    const loadData = async () => {
       try {
-        const assessments = JSON.parse(savedGlobalAssessments);
-        console.log('Loaded global risk assessments:', assessments.length);
-        setGlobalRiskAssessments(assessments);
+        if (isSupabaseConfigured()) {
+          // Load from Supabase
+          const [assessments, criteria] = await Promise.all([
+            getRiskAssessments(),
+            getCriteriaCategories()
+          ]);
+          
+          setGlobalRiskAssessments(assessments || []);
+          setAvailableCriteria(criteria || []);
+        } else {
+          // Fallback to localStorage
+          const savedGlobalAssessments = localStorage.getItem('gbu-global-risk-assessments');
+          if (savedGlobalAssessments) {
+            const assessments = JSON.parse(savedGlobalAssessments);
+            setGlobalRiskAssessments(assessments);
+          }
+          
+          const savedCriteria = localStorage.getItem('gbu-criteria-categories');
+          if (savedCriteria) {
+            const criteria = JSON.parse(savedCriteria);
+            setAvailableCriteria(criteria);
+          }
+        }
       } catch (error) {
-        console.error('Error loading global risk assessments:', error);
-      }
-    } else {
-      console.log('No global risk assessments found in localStorage');
-    }
-    
-    // Load available criteria
-    const savedCriteria = localStorage.getItem('gbu-criteria-categories');
-    if (savedCriteria) {
-      try {
-        const criteria = JSON.parse(savedCriteria);
-        console.log('Loaded criteria categories:', criteria.length, criteria);
-        setAvailableCriteria(criteria);
+        console.error('Error loading data:', error);
+        // Fallback to localStorage on error
+        try {
+          const savedGlobalAssessments = localStorage.getItem('gbu-global-risk-assessments');
+          if (savedGlobalAssessments) {
+            setGlobalRiskAssessments(JSON.parse(savedGlobalAssessments));
+          }
+          
+          const savedCriteria = localStorage.getItem('gbu-criteria-categories');
+          if (savedCriteria) {
+            setAvailableCriteria(JSON.parse(savedCriteria));
+          }
+        } catch (e) {
+          console.error('Error loading from localStorage:', e);
+        }
+      } finally {
         setCriteriaLoaded(true);
-      } catch (error) {
-        console.error('Error loading criteria categories:', error);
-        setCriteriaLoaded(true);
       }
-    } else {
-      console.log('No criteria categories found in localStorage');
-      setCriteriaLoaded(true);
-    }
+    };
+
+    loadData();
   }, []);
 
   const handleInputChange = (field: string, value: any) => {
@@ -308,42 +325,58 @@ export default function NewProjectPage() {
       }
 
       // Create new project object
-      const newProject = {
-        id: Date.now().toString(),
+      const projectData = {
         title: formData.title,
         location: formData.location,
         description: formData.description,
-        isOutdoor: formData.isOutdoor,
-        buildUpStart: formData.buildUpStart,
-        buildUpEnd: formData.buildUpEnd,
-        eventStart: formData.eventStart,
-        eventEnd: formData.eventEnd,
-        hasElectricity: formData.hasElectricity,
-        hasGenerator: formData.hasGenerator,
-        hasHazardousMaterials: formData.hasHazardousMaterials,
-        hasWorkAbove2m: formData.hasWorkAbove2m,
-        hasPublicAccess: formData.hasPublicAccess,
-        hasNightWork: formData.hasNightWork,
-        hasTrafficArea: formData.hasTrafficArea,
-        createdByUserId: session?.user?.id ?? '1',
+        is_outdoor: formData.isOutdoor,
+        build_up_start: formData.buildUpStart?.toISOString(),
+        build_up_end: formData.buildUpEnd?.toISOString(),
+        event_start: formData.eventStart?.toISOString(),
+        event_end: formData.eventEnd?.toISOString(),
+        has_electricity: formData.hasElectricity,
+        has_generator: formData.hasGenerator,
+        has_hazardous_materials: formData.hasHazardousMaterials,
+        has_work_above_2m: formData.hasWorkAbove2m,
+        has_public_access: formData.hasPublicAccess,
+        has_night_work: formData.hasNightWork,
+        has_traffic_area: formData.hasTrafficArea,
+        created_by_user_id: session?.user?.id ?? '550e8400-e29b-41d4-a716-446655440001',
         status: 'ENTWURF',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        participants: [],
-        riskAssessmentIds: selectedRiskAssessments,
       };
 
-      // Save to localStorage
-      const existingProjects = JSON.parse(localStorage.getItem('gbu-projects') || '[]');
-      const updatedProjects = [...existingProjects, newProject];
-      localStorage.setItem('gbu-projects', JSON.stringify(updatedProjects));
+      if (isSupabaseConfigured()) {
+        // Save to Supabase
+        const newProject = await createProject(projectData);
+        
+        // TODO: Save selected risk assessments to project_hazards table
+        // This would require implementing updateProjectHazards function
+        
+        toast.success('Projekt erfolgreich erstellt!');
+        router.push('/projects');
+      } else {
+        // Fallback to localStorage
+        const newProject = {
+          id: Date.now().toString(),
+          ...projectData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          participants: [],
+          riskAssessmentIds: selectedRiskAssessments,
+        };
+
+        const existingProjects = JSON.parse(localStorage.getItem('gbu-projects') || '[]');
+        const updatedProjects = [...existingProjects, newProject];
+        localStorage.setItem('gbu-projects', JSON.stringify(updatedProjects));
+        
+        toast.success('Projekt erfolgreich erstellt!');
+        router.push('/projects');
+      }
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Projekt erfolgreich erstellt!');
-      router.push('/projects');
     } catch (error) {
+      console.error('Error creating project:', error);
       toast.error('Fehler beim Erstellen des Projekts.');
     } finally {
       setIsLoading(false);

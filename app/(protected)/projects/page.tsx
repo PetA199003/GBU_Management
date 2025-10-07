@@ -12,11 +12,13 @@ import { hasPermission } from '@/lib/permissions';
 import { UserRole } from '@/lib/permissions';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { getProjects } from '@/lib/mongodb';
 
 export default function ProjectsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -25,17 +27,41 @@ export default function ProjectsPage() {
   }, [status, router]);
 
   useEffect(() => {
-    // Load projects from localStorage on component mount
-    const savedProjects = localStorage.getItem('gbu-projects');
-    if (savedProjects) {
+    const loadProjects = async () => {
+      if (status !== 'authenticated') return;
+      
       try {
-        setProjects(JSON.parse(savedProjects));
+        if (isSupabaseConfigured()) {
+          // Load from Supabase
+          const data = await getProjects(session?.user?.id);
+          setProjects(data || []);
+        } else {
+          // Fallback to localStorage
+          const savedProjects = localStorage.getItem('gbu-projects');
+          if (savedProjects) {
+            setProjects(JSON.parse(savedProjects));
+          }
+        }
       } catch (error) {
         console.error('Error loading projects:', error);
+        // Fallback to localStorage on error
+        const savedProjects = localStorage.getItem('gbu-projects');
+        if (savedProjects) {
+          try {
+            setProjects(JSON.parse(savedProjects));
+          } catch (e) {
+            console.error('Error loading from localStorage:', e);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
-  if (status === 'loading') {
+    };
+
+    loadProjects();
+  }, [status, session?.user?.id]);
+
+  if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
