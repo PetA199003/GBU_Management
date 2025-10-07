@@ -110,55 +110,33 @@ export default function HazardsPage() {
   }, [status, session, router]);
 
   useEffect(() => {
-    const loadData = async () => {
+    // Load global risk assessments from localStorage
+    const savedAssessments = localStorage.getItem('gbu-global-risk-assessments');
+    if (savedAssessments) {
       try {
-        if (isSupabaseConfigured()) {
-          // Load from Supabase
-          const [assessments, criteria] = await Promise.all([
-            getRiskAssessments(),
-            getCriteriaCategories()
-          ]);
-          
-          setGlobalRiskAssessments(assessments || []);
-          setAvailableCriteria(criteria || []);
-        } else {
-          // Fallback to localStorage
-          const savedAssessments = localStorage.getItem('gbu-global-risk-assessments');
-          if (savedAssessments) {
-            setGlobalRiskAssessments(JSON.parse(savedAssessments));
-          } else {
-            initializeDefaultAssessments();
-          }
-          
-          const savedCriteria = localStorage.getItem('gbu-criteria-categories');
-          if (savedCriteria) {
-            setAvailableCriteria(JSON.parse(savedCriteria));
-          }
-        }
+        setGlobalRiskAssessments(JSON.parse(savedAssessments));
       } catch (error) {
-        console.error('Error loading data:', error);
-        // Fallback to localStorage on error
-        try {
-          const savedAssessments = localStorage.getItem('gbu-global-risk-assessments');
-          if (savedAssessments) {
-            setGlobalRiskAssessments(JSON.parse(savedAssessments));
-          } else {
-            initializeDefaultAssessments();
-          }
-          
-          const savedCriteria = localStorage.getItem('gbu-criteria-categories');
-          if (savedCriteria) {
-            setAvailableCriteria(JSON.parse(savedCriteria));
-          }
-        } catch (e) {
-          console.error('Error loading from localStorage:', e);
-        }
-      } finally {
+        console.error('Error loading global risk assessments:', error);
+        initializeDefaultAssessments();
+      }
+    } else {
+      initializeDefaultAssessments();
+    }
+    
+    // Load available criteria
+    const savedCriteria = localStorage.getItem('gbu-criteria-categories');
+    if (savedCriteria) {
+      try {
+        const criteria = JSON.parse(savedCriteria);
+        setAvailableCriteria(criteria);
+        setCriteriaLoaded(true);
+      } catch (error) {
+        console.error('Error loading criteria categories:', error);
         setCriteriaLoaded(true);
       }
-    };
-
-    loadData();
+    } else {
+      setCriteriaLoaded(true);
+    }
   }, []);
 
   const initializeDefaultAssessments = () => {
@@ -344,62 +322,27 @@ export default function HazardsPage() {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       let updatedAssessments;
-      const assessmentData = {
-        activity: formData.activity,
-        process: formData.process,
-        hazard: formData.hazard,
-        hazard_factors: formData.hazardFactors,
-        severity: formData.severity,
-        probability: formData.probability,
-        risk_value: formData.riskValue,
-        substitution: formData.substitution,
-        technical: formData.technical,
-        organizational: formData.organizational,
-        personal: formData.personal,
-        measures: formData.measures,
-        severity_after: formData.severityAfter,
-        probability_after: formData.probabilityAfter,
-        residual_risk: formData.residualRisk,
-        group_name: formData.group,
-        auto_select: formData.autoSelect
-      };
 
-      if (isSupabaseConfigured()) {
-        // Save to Supabase
-        if (editingAssessment) {
-          await updateRiskAssessment(editingAssessment.id, assessmentData);
-          toast.success('Gefährdungsbeurteilung erfolgreich aktualisiert!');
-        } else {
-          await createRiskAssessment(assessmentData);
-          toast.success('Gefährdungsbeurteilung erfolgreich erstellt!');
-        }
-        
-        // Reload data
-        const assessments = await getRiskAssessments();
-        setGlobalRiskAssessments(assessments || []);
+      if (editingAssessment) {
+        updatedAssessments = globalRiskAssessments.map(a => 
+          a.id === editingAssessment.id 
+            ? { ...formData, updatedAt: new Date().toISOString() }
+            : a
+        );
+        toast.success('Gefährdungsbeurteilung erfolgreich aktualisiert!');
       } else {
-        // Fallback to localStorage
-        if (editingAssessment) {
-          updatedAssessments = globalRiskAssessments.map(a => 
-            a.id === editingAssessment.id 
-              ? { ...formData, updatedAt: new Date().toISOString() }
-              : a
-          );
-          toast.success('Gefährdungsbeurteilung erfolgreich aktualisiert!');
-        } else {
-          const newAssessment: RiskAssessment = {
-            ...formData,
-            id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          updatedAssessments = [...globalRiskAssessments, newAssessment];
-          toast.success('Gefährdungsbeurteilung erfolgreich erstellt!');
-        }
-
-        setGlobalRiskAssessments(updatedAssessments);
-        localStorage.setItem('gbu-global-risk-assessments', JSON.stringify(updatedAssessments));
+        const newAssessment: RiskAssessment = {
+          ...formData,
+          id: Date.now().toString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        updatedAssessments = [...globalRiskAssessments, newAssessment];
+        toast.success('Gefährdungsbeurteilung erfolgreich erstellt!');
       }
+
+      setGlobalRiskAssessments(updatedAssessments);
+      localStorage.setItem('gbu-global-risk-assessments', JSON.stringify(updatedAssessments));
 
       setIsDialogOpen(false);
       resetForm();
@@ -416,23 +359,11 @@ export default function HazardsPage() {
     }
 
     try {
-      if (isSupabaseConfigured()) {
-        // Delete from Supabase
-        await deleteRiskAssessment(assessmentId);
-        
-        // Reload data
-        const assessments = await getRiskAssessments();
-        setGlobalRiskAssessments(assessments || []);
-      } else {
-        // Fallback to localStorage
-        const updatedAssessments = globalRiskAssessments.filter(a => a.id !== assessmentId);
-        setGlobalRiskAssessments(updatedAssessments);
-        localStorage.setItem('gbu-global-risk-assessments', JSON.stringify(updatedAssessments));
-      }
-      
+      const updatedAssessments = globalRiskAssessments.filter(a => a.id !== assessmentId);
+      setGlobalRiskAssessments(updatedAssessments);
+      localStorage.setItem('gbu-global-risk-assessments', JSON.stringify(updatedAssessments));
       toast.success('Gefährdungsbeurteilung erfolgreich gelöscht!');
     } catch (error) {
-      console.error('Error deleting assessment:', error);
       toast.error('Fehler beim Löschen der Gefährdungsbeurteilung.');
     }
   };

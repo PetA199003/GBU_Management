@@ -526,13 +526,13 @@ export default function EditProjectPage() {
                           wurde die Jahreszeit <strong>{getSeasonFromDate(formData.eventStart)}</strong> erkannt.
                         </p>
                         <p className="text-xs text-blue-600 mt-1">
-                          Entsprechende Gefährdungen werden automatisch berücksichtigt.
+                          Diese wird automatisch für die Gefährdungsauswahl verwendet.
                         </p>
                       </div>
                     )}
                     
                     <div className="grid gap-4 md:grid-cols-2">
-                      {availableCriteria.filter(criteria => criteria.category !== 'season').map((criteria) => (
+                      {availableCriteria.map((criteria) => (
                         <div key={criteria.id} className="space-y-2">
                           <Label htmlFor={`custom-${criteria.id}`} className="text-sm font-medium">
                             {criteria.name}
