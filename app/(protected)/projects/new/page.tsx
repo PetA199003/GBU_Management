@@ -301,49 +301,49 @@ export default function NewProjectPage() {
 
     try {
       // Validate required fields
-      if (!formData.title || !formData.location || !formData.buildUpStart || 
+      if (!formData.title || !formData.location || !formData.buildUpStart ||
           !formData.buildUpEnd || !formData.eventStart || !formData.eventEnd) {
         toast.error('Bitte füllen Sie alle Pflichtfelder aus.');
+        setIsLoading(false);
         return;
       }
 
-      // Create new project object
-      const newProject = {
-        id: Date.now().toString(),
-        title: formData.title,
-        location: formData.location,
-        description: formData.description,
-        isOutdoor: formData.isOutdoor,
-        buildUpStart: formData.buildUpStart,
-        buildUpEnd: formData.buildUpEnd,
-        eventStart: formData.eventStart,
-        eventEnd: formData.eventEnd,
-        hasElectricity: formData.hasElectricity,
-        hasGenerator: formData.hasGenerator,
-        hasHazardousMaterials: formData.hasHazardousMaterials,
-        hasWorkAbove2m: formData.hasWorkAbove2m,
-        hasPublicAccess: formData.hasPublicAccess,
-        hasNightWork: formData.hasNightWork,
-        hasTrafficArea: formData.hasTrafficArea,
-        createdByUserId: session?.user?.id ?? '1',
-        status: 'ENTWURF',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        participants: [],
-        riskAssessmentIds: selectedRiskAssessments,
-      };
+      // Create project via API
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          location: formData.location,
+          description: formData.description,
+          isOutdoor: formData.isOutdoor,
+          buildUpStart: formData.buildUpStart.toISOString(),
+          buildUpEnd: formData.buildUpEnd.toISOString(),
+          eventStart: formData.eventStart.toISOString(),
+          eventEnd: formData.eventEnd.toISOString(),
+          hasElectricity: formData.hasElectricity,
+          hasGenerator: formData.hasGenerator,
+          hasHazardousMaterials: formData.hasHazardousMaterials,
+          hasWorkAbove2m: formData.hasWorkAbove2m,
+          hasPublicAccess: formData.hasPublicAccess,
+          hasNightWork: formData.hasNightWork,
+          hasTrafficArea: formData.hasTrafficArea,
+          riskAssessmentIds: selectedRiskAssessments,
+        }),
+      });
 
-      // Save to localStorage
-      const existingProjects = JSON.parse(localStorage.getItem('gbu-projects') || '[]');
-      const updatedProjects = [...existingProjects, newProject];
-      localStorage.setItem('gbu-projects', JSON.stringify(updatedProjects));
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      if (!response.ok) {
+        throw new Error('Failed to create project');
+      }
+
+      const newProject = await response.json();
+
       toast.success('Projekt erfolgreich erstellt!');
       router.push('/projects');
     } catch (error) {
+      console.error('Error creating project:', error);
       toast.error('Fehler beim Erstellen des Projekts.');
     } finally {
       setIsLoading(false);
