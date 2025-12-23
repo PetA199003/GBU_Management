@@ -1,7 +1,7 @@
-FROM node:18-alpine AS base
+FROM node:18-alpine
 
-# Install dependencies needed for Prisma and other tools
-RUN apk add --no-cache libc6-compat openssl curl bash
+# Minimal packages
+RUN apk add --no-cache bash curl
 
 WORKDIR /app
 
@@ -9,53 +9,16 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies with reduced memory footprint
-# Use --prefer-offline to reduce network usage and --no-optional to skip optional deps
-RUN npm install --prefer-offline --no-audit --no-fund --legacy-peer-deps
-RUN npm cache clean --force
+# Install dependencies (simple)
+RUN npm install
 
-# Generate Prisma Client
+# Generate Prisma
 RUN npx prisma generate
 
-# Copy source code
+# Copy everything
 COPY . .
-
-# Create data directory for persistent storage
-RUN mkdir -p /app/data
-
-# Set environment variables for build
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Build the application
-RUN npm run build
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Create startup script
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "Waiting for database to be ready..."' >> /app/start.sh && \
-    echo 'sleep 5' >> /app/start.sh && \
-    echo 'echo "Synchronizing database schema..."' >> /app/start.sh && \
-    echo 'npx prisma db push --accept-data-loss --skip-generate' >> /app/start.sh && \
-    echo 'echo "Database schema synchronized successfully!"' >> /app/start.sh && \
-    echo 'echo "Starting application..."' >> /app/start.sh && \
-    echo 'npm start' >> /app/start.sh && \
-    chmod +x /app/start.sh
-
-# Set correct permissions
-RUN chown -R nextjs:nodejs /app
-USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
-
-CMD ["/app/start.sh"]
+# Simple startup
+CMD sh -c "sleep 10 && npx prisma db push --accept-data-loss && npm run dev"
