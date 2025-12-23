@@ -1,0 +1,16 @@
+FROM node:18-alpine
+
+# Nur die minimal notwendigen Tools
+RUN apk add --no-cache bash
+
+WORKDIR /app
+
+# Kein npm install hier - wird vom Host gemountet!
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+# Startup script
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss --skip-generate && npm run dev"]

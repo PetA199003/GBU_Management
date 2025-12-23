@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: gbu_postgres
+    environment:
+      POSTGRES_USER: gbu_user
+      POSTGRES_PASSWORD: gbu_password_2024
+      POSTGRES_DB: gbu_app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.lightweight
+    container_name: gbu_app
+    ports:
+      - "3003:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://gbu_user:gbu_password_2024@db:5432/gbu_app?schema=public
+      NEXTAUTH_SECRET: Jg5QaXU8+VGFmQqjt+KrxfT2Hs7Lp9Mn3Bv6Cx1Zy4=
+      NEXTAUTH_URL: http://localhost:3003
+    volumes:
+      # Mount alles vom Host - KEIN npm install im Container!
+      - .:/app
+      - /app/.next
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
