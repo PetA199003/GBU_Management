@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
-# Minimal packages
-RUN apk add --no-cache bash curl
+# Minimal packages + OpenSSL für Prisma
+RUN apk add --no-cache bash curl openssl libc6-compat
 
 WORKDIR /app
 
