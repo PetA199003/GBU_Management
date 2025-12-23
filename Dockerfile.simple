@@ -1,0 +1,39 @@
+FROM node:18-alpine
+
+# Install dependencies
+RUN apk add --no-cache libc6-compat openssl curl bash
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies
+RUN npm install --legacy-peer-deps
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Copy source code
+COPY . .
+
+# Create data directory
+RUN mkdir -p /app/data
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+# Create startup script that syncs DB and runs in dev mode
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'echo "Waiting for database..."' >> /app/start.sh && \
+    echo 'sleep 5' >> /app/start.sh && \
+    echo 'echo "Syncing database schema..."' >> /app/start.sh && \
+    echo 'npx prisma db push --accept-data-loss --skip-generate' >> /app/start.sh && \
+    echo 'echo "Starting Next.js in development mode..."' >> /app/start.sh && \
+    echo 'npm run dev' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
