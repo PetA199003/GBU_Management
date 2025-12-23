@@ -25,16 +25,25 @@ export default function ProjectsPage() {
   }, [status, router]);
 
   useEffect(() => {
-    // Load projects from localStorage on component mount
-    const savedProjects = localStorage.getItem('gbu-projects');
-    if (savedProjects) {
+    // Load projects from API
+    const loadProjects = async () => {
       try {
-        setProjects(JSON.parse(savedProjects));
+        const response = await fetch('/api/projects');
+        if (response.ok) {
+          const data = await response.json();
+          setProjects(data);
+        } else {
+          console.error('Failed to load projects');
+        }
       } catch (error) {
         console.error('Error loading projects:', error);
       }
+    };
+
+    if (status === 'authenticated') {
+      loadProjects();
     }
-  }, []);
+  }, [status]);
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center py-16">
@@ -142,10 +151,10 @@ export default function ProjectsPage() {
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center text-muted-foreground">
                       <Users className="mr-1 h-3 w-3" />
-                      {project.participants.length} Teilnehmer
+                      {project._count?.participants || 0} Teilnehmer
                     </div>
                     <div className="text-muted-foreground">
-                      {project.riskAssessmentIds ? project.riskAssessmentIds.length : 0} Gefährdungsbeurteilungen
+                      {project._count?.projectHazards || 0} Gefährdungsbeurteilungen
                     </div>
                   </div>
 
