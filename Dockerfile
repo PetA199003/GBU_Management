@@ -9,8 +9,9 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies (suppress warnings for cleaner output)
-RUN npm ci --silent 2>/dev/null || npm install --silent
+# Install dependencies with reduced memory footprint
+# Use --prefer-offline to reduce network usage and --no-optional to skip optional deps
+RUN npm install --prefer-offline --no-audit --no-fund --legacy-peer-deps
 RUN npm cache clean --force
 
 # Generate Prisma Client

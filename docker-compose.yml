@@ -23,7 +23,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      shm_size: '2gb'
     container_name: gbu_app
+    shm_size: '2gb'
     ports:
       - "3000:3000"
     environment:
