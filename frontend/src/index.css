@@ -1,0 +1,88 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.risk-high {
+  background-color: #ff0000 !important;
+  color: white;
+}
+
+.risk-mittel {
+  background-color: #ffff00 !important;
+  color: black;
+}
+
+.risk-niedrig {
+  background-color: #00ff00 !important;
+  color: black;
+}
+
+.signature-pad {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: crosshair;
+}
+
+.gbu-table {
+  font-size: 0.9rem;
+}
+
+.gbu-table th {
+  background-color: #1a237e;
+  color: white;
+  font-size: 0.85rem;
+  padding: 8px 4px;
+}
+
+.gbu-table td {
+  padding: 6px 4px;
+  vertical-align: middle;
+}
+
+.stop-principle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.stop-level {
+  width: 100%;
+  max-width: 400px;
+  padding: 15px;
+  margin: 5px 0;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.stop-s {
+  background-color: #1a237e;
+  width: 100%;
+}
+
+.stop-t {
+  background-color: #303f9f;
+  width: 90%;
+}
+
+.stop-o {
+  background-color: #5c6bc0;
+  width: 80%;
+}
+
+.stop-p {
+  background-color: #9fa8da;
+  width: 70%;
+}
